@@ -1,0 +1,92 @@
+---
+title: "Round Level Data Regression"
+author: "Hunter Geise"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+loading in data
+```{r}
+setwd("/Users/huntergeise/Library/CloudStorage/OneDrive-SyracuseUniversity/Berlin Scholar/Golf Data/Round Level Data")
+tour_data <- read.csv('tour_data.csv')
+current_tour_data <- read.csv('current_tour_data.csv')
+earnings = read.csv('golf_earnings.csv')
+```
+
+Getting only PGA Data
+```{r}
+pga_tour_data <- tour_data %>% 
+  filter(tour == "pga")
+```
+
+getting avg strokes gained by player
+```{r}
+pga_tour_data %>% 
+  group_by(player_name) %>%
+  mutate(sg_avg = mean(sg_total, na.rm = TRUE)) -> pga_tour_data
+```
+
+joining data
+```{r}
+inner_join(pga_tour_data, pga_tour_data, by = c('event_id', 'round_num', 'teetime', 'season'), suffix = c('', '_opp')) -> pga_tour_self_joined_data
+```
+
+filtering out dupes
+```{r}
+pga_tour_self_joined_data %>%
+  filter(player_name != player_name_opp) -> pga_tour_self_joined_data
+```
+
+difference in avg_strokes gained
+```{r}
+pga_tour_self_joined_data %>%
+  mutate(sg_avg_diff = sg_avg_opp - sg_avg) -> pga_tour_self_joined_data
+```
+
+converting hours:minutes to minutes, making minutes a quadratic
+```{r}
+pga_tour_self_joined_data %>%
+  separate(teetime, into = c("hours", "minutes"), sep = ":", convert = TRUE) %>%
+  mutate(total_minutes = hours * 60 + minutes) -> pga_tour_self_joined_data
+
+pga_tour_self_joined_data %>%
+  mutate(total_minutes_sqrd = total_minutes ^2) -> pga_tour_self_joined_data
+```
+
+opp_avg model
+```{r}
+opp_avg_model <- lm(sg_total ~ sg_avg + sg_avg_opp + event_id + 
+              round_num + total_minutes + total_minutes_sqrd + season, pga_tour_self_joined_data)
+summary(opp_avg_model)
+```
+
+difference in avg linear regression
+```{r}
+diff_avg_model <- lm(sg_total ~ sg_avg + sg_avg_diff + event_id + 
+              round_num + total_minutes + total_minutes_sqrd + season, pga_tour_self_joined_data)
+summary(diff_avg_model)
+```
+
+
+opponent ability over expected difference
+```{r}
+pga_tour_self_joined_data %>%
+  mutate(sg_opp_act_over_exp = sg_total_opp - sg_avg_opp) -> pga_tour_self_joined_data
+```
+
+
+opponent ability over expected difference regression
+```{r}
+exp_diff_model <- lm(sg_total ~ sg_avg + sg_opp_act_over_exp + event_id + 
+              round_num + total_minutes + total_minutes_sqrd + season, pga_tour_self_joined_data)
+summary(exp_diff_model)
+```
+

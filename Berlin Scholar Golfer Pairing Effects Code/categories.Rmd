@@ -1,0 +1,204 @@
+---
+title: "Categories"
+author: "Hunter Geise"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+setwd("/Users/huntergeise/Library/CloudStorage/OneDrive-SyracuseUniversity/Berlin Scholar/Golf Data/Round Level Data")
+earnings <- read.csv('golf_earnings.csv')
+```
+
+getting top 25 by year
+```{r}
+earnings %>%
+  filter(YEAR == 2024) %>%
+  slice_head(n = 25) -> top_25_earnings_2024
+
+earnings %>%
+  filter(YEAR == 2023) %>%
+  slice_head(n = 25) -> top_25_earnings_2023
+
+earnings %>%
+  filter(YEAR == 2022) %>%
+  slice_head(n = 25) -> top_25_earnings_2022
+
+earnings %>%
+  filter(YEAR == 2021) %>%
+  slice_head(n = 25) -> top_25_earnings_2021
+
+earnings %>%
+  filter(YEAR == 2020) %>%
+  slice_head(n = 25) -> top_25_earnings_2020
+
+earnings %>%
+  filter(YEAR == 2019) %>%
+  slice_head(n = 25) -> top_25_earnings_2019
+
+earnings %>%
+  filter(YEAR == 2018) %>%
+  slice_head(n = 25) -> top_25_earnings_2018
+
+earnings %>%
+  filter(YEAR == 2017) %>%
+  slice_head(n = 25) -> top_25_earnings_2017
+```
+
+merging years together
+```{r}
+datasets <- list(top_25_earnings_2024, top_25_earnings_2023, top_25_earnings_2022,
+                 top_25_earnings_2021, top_25_earnings_2020, top_25_earnings_2019,
+                 top_25_earnings_2018, top_25_earnings_2017)
+
+top_25_earners <- reduce(datasets, full_join)
+
+category_1 <- top_25_earners %>%
+  filter(WINS != 0)
+
+category_1a <- top_25_earners %>%
+  filter(WINS == 0)
+
+write.csv(category_1, 'category_1.csv', row.names = FALSE)
+write.csv(category_1a, 'category_1a.csv', row.names = FALSE)
+```
+
+category 2
+```{r}
+cat_1_1a_names <- unique(c(category_1$NAME, category_1a$NAME))
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2024) %>%
+  slice_head(n = 100)-> cat_2_2024
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2023) %>%
+  slice_head(n = 100)-> cat_2_2023
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2022) %>%
+  slice_head(n = 100)-> cat_2_2022
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2021) %>%
+  slice_head(n = 100)-> cat_2_2021
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2020) %>%
+  slice_head(n = 100)-> cat_2_2020
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2019) %>%
+  slice_head(n = 100)-> cat_2_2019
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2018) %>%
+  slice_head(n = 100)-> cat_2_2018
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_names & YEAR == 2017) %>%
+  slice_head(n = 100)-> cat_2_2017
+
+```
+
+```{r}
+cat_2 <- list(cat_2_2024, cat_2_2023, cat_2_2022,
+                 cat_2_2021, cat_2_2020, cat_2_2019,
+                 cat_2_2018, cat_2_2017)
+
+category_2 <- reduce(cat_2, full_join)
+
+write.csv(category_2, 'category_2.csv', row.names = FALSE)
+```
+
+
+category 3
+```{r}
+cat_1_1a_2_names <- unique(c(category_1$NAME, category_1a$NAME, category_2$NAME))
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2024) -> cat_3_2024
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2023) -> cat_3_2023
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2022) -> cat_3_2022
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2021) -> cat_3_2021
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2020) -> cat_3_2020
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2019) -> cat_3_2019
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2018) -> cat_3_2018
+
+earnings %>% 
+  filter(!NAME %in% cat_1_1a_2_names & YEAR == 2017) -> cat_3_2017
+```
+
+
+```{r}
+cat_3 <- list(cat_3_2024, cat_3_2023, cat_3_2022,
+                 cat_3_2021, cat_3_2020, cat_3_2019,
+                 cat_3_2018, cat_3_2017)
+
+category_3 <- reduce(cat_3, full_join)
+
+write.csv(category_3, 'category_3.csv', row.names = FALSE)
+```
+
+
+top 5 earners for superstars
+```{r}
+earnings %>%
+  filter(YEAR == 2024) %>%
+  slice_head(n = 5) -> top_5_earnings_2024
+
+earnings %>%
+  filter(YEAR == 2023) %>%
+  slice_head(n = 5) -> top_5_earnings_2023
+
+earnings %>%
+  filter(YEAR == 2022) %>%
+  slice_head(n = 5) -> top_5_earnings_2022
+
+earnings %>%
+  filter(YEAR == 2021) %>%
+  slice_head(n = 5) -> top_5_earnings_2021
+
+earnings %>%
+  filter(YEAR == 2020) %>%
+  slice_head(n = 5) -> top_5_earnings_2020
+
+earnings %>%
+  filter(YEAR == 2019) %>%
+  slice_head(n = 5) -> top_5_earnings_2019
+
+earnings %>%
+  filter(YEAR == 2018) %>%
+  slice_head(n = 5) -> top_5_earnings_2018
+
+earnings %>%
+  filter(YEAR == 2017) %>%
+  slice_head(n = 5) -> top_5_earnings_2017
+  
+  
+data <- list(top_5_earnings_2024, top_5_earnings_2023, top_5_earnings_2022,
+                 top_5_earnings_2021, top_5_earnings_2020, top_5_earnings_2019,
+                 top_5_earnings_2018, top_5_earnings_2017)
+
+top_5_earners <- reduce(data, full_join)
+
+write.csv(top_5_earners, 'superstars.csv', row.names = FALSE)
+```
+
