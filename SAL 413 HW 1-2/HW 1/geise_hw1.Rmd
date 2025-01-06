@@ -1,0 +1,97 @@
+---
+title: "SAL 413 HW1"
+author: "Hunter Geise"
+date: '2023-09-19'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r, include = FALSE}
+library(tidyverse)
+library(purrr)
+theme_set(theme_bw())
+library(tibble)
+library(ggplot2)
+library(cfbplotR)
+```
+\newpage
+
+Question 1. 
+```{r, results='asis'}
+hundred <- 1:100
+
+hundred_list <- map_chr(hundred, function(i) {
+  if (i %% 3 == 0 & i %% 7 == 0) {
+    "FGorTD"
+  } else if (i %% 7 == 0) {
+    "TD"
+  } else if (i %% 3 == 0) {
+    "FG"
+  } else {
+    as.character(i)
+  }
+    
+})
+
+final_hundred <- paste(hundred_list, collapse = " ")
+final_hundred
+```
+ \newpage
+ 
+Question 2:
+```{r}
+#a#
+kenpom <- read.csv("kenpom_23.csv")
+new_kenpom <- kenpom[c(26, 53, 74, 91, 102, 152, 169, 188, 202, 217, 
+                       231, 290, 341, 342, 345), ]
+new_kenpom
+```
+\newpage
+
+```{r}
+#b#
+ordered_kenpom <- new_kenpom[order(-new_kenpom$AdjEM), ]
+ordered_kenpom
+```
+\newpage
+
+```{r}
+#c#
+kenpom_matrix <- matrix(c(ordered_kenpom$TeamName, ordered_kenpom$AdjEM), ncol = 2)
+colnames(kenpom_matrix) <- c("TeamName", "AdjEM")
+kenpom_matrix
+
+#d#
+mat_to_tibble <- function(mat) {
+  tibble <- as_tibble(mat)
+  tibble %>% mutate(row = rownames(tibble)) -> tibble
+  tibble %>% pivot_longer(cols = -row, names_to = "Column", 
+                          values_to = "Value") -> tibble
+  return(tibble)
+}
+
+function_check <- mat_to_tibble(kenpom_matrix)
+colnames(function_check) <- c("Row(Rank)", "Column", "Values")
+function_check
+```
+\newpage
+
+Question 3.
+```{r}
+#ggplot scatterplot#
+ggplot(ordered_kenpom, aes(x = AdjOE, y = AdjDE)) + 
+  geom_point() +
+  labs(title = "2023 ACC Teams AdjOE vs AdjDE") +
+  geom_cfb_logos(aes(team = TeamName), width = 0.075)
+  
+```
+\newpage

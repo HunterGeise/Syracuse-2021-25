@@ -1,0 +1,127 @@
+---
+title: "SAL 413 HW2"
+author: "Hunter Geise"
+date: "2023-10-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(purrr)
+library(stringr)
+library(ggTimeSeries)
+library(glue)
+```
+\newpage
+
+Question 1:
+a. Download the tweets.json file and load it into R as a named list, woj_tweets, using the function jsonlite::read_json(). Print Woj’s most recent tweet. Do not include the metadata, just the tweet itself.
+```{r, results='asis'}
+#a#
+woj_tweets <- jsonlite::read_json("tweets.json")
+print(woj_tweets[[1]]$text)
+```
+\newpage
+
+b. Twitter users can mention users or direct tweets to users using the @ symbol directly followed by a username following these rules. Determine the top 20 users Woj mentioned in the data set.
+```{r}
+#b#
+woj_tweets %>% str_extract_all("\\@\\w+") -> usernames_list
+usernames_list %>% unlist() -> usernames
+usernames %>% as.data.frame() -> username_df
+colnames(username_df) <- c("Username")
+username_count <- as.data.frame(table(username_df$Username))
+ordered_username <- username_count[order(-username_count$Freq), ]
+final_order <- head(ordered_username, 20)
+final_order
+```
+\newpage
+
+c. Make a line chart that shows the number of tweets Woj wrote daily in the data set.
+Hint: Unless you want to go nuts with string processing, let lubridate do the heavy lifting. You’ll
+need to do some, but note the following behavior of lubridate’s mdy() function:
+Once you compute the vector of dates, put them in a single-column tibble with variable named date. Then pipe the tibble into dplyr’s count(), see its documentation to learn the syntax you need. You should know where to go from there.
+I achieved this result in 10 lines while following the tidyverse style guide.
+```{r}
+#c#
+woj_tweets %>% str_extract_all("\\d{4}-\\d{2}-\\d{2}") -> woj_dates
+woj_dates %>% unlist() -> woj_dates
+new_woj_dates <- lubridate::ymd(woj_dates)
+new_woj_dates %>% tibble(Date = new_woj_dates) -> woj_tibble
+woj_tibble %>% count(Date) -> date_count
+ggplot(date_count, aes(x = Date, y = n, group = 1)) +
+  geom_line() +
+  labs(title = "Woj Daily Tweet Frequency") +
+  ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+\newpage
+
+d. Using the ggTimeSeries package, make a calendar heatmap of the tweets. (See the page to learn what that is.)
+```{r}
+#d#
+ggplot_calendar_heatmap(dtDateValue = date_count, "Date", "n") +
+  labs(title = "Woj Tweets Calendar Heatmap") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_continuous(low = 'green', high = 'red', name = "# of Tweets") +
+  facet_wrap(~Year, ncol = 1) 
+```
+\newpage
+
+e. What were Woj’s top ten most popular tweets by like (favorite) count? Print out just the tweets (no meta data) in the format “1. [tweet] ([# votes])” with new lines between each, e.g. 1. blah blah blah (1234). Use string processing to format it cleanly on the output page. You must make
+use of the glue package for this question.
+```{r, results='asis'}
+#e#
+woj_tweets[order(map_int(
+  woj_tweets, function(i) -i$favorite_count))] -> woj_favorite_tweets
+
+top_tweets <- head(woj_favorite_tweets, 10)
+
+final_top_10 <- map_chr(seq_along(top_tweets), function(x) {
+  glue("{x}. {top_tweets[[x]]$text} ({top_tweets[[x]]$favorite_count} Likes)")
+  })
+
+cat(final_top_10, sep = "\n")
+```
+\newpage
+
+f. Each tweet comes with the same fields, source, id_str, etc. Convert your woj_tweets list into a
+tibble with those columns. Where necessary, make appropriate changes.
+```{r}
+#f#
+whole_tibble <- function(list) {
+  tibble(
+    Created_At = list$created_at,
+    Favorite_Count = list$favorite_count,
+    Followers_Count = list$follwers_count,
+    ID_Str = list$id_str,
+    In_Reply_To_Screen_Name = list$in_reply_to_screen_name,
+    Retweet_Count = list$retweet_count,
+    Screen_Name = list$screen_name,
+    Text = list$text
+  )
+}
+
+whole_woj_tibble <- map_dfr(woj_tweets, whole_tibble)
+whole_woj_tibble
+```
+\newpage
+
+g. Bonus. Using any technique you like, Text Mining with R may help and is available to you, do something interesting with this dataset that uses your tidyverse skills.
+```{r}
+#g#
+ggplot(date_count, aes(x = Date, y = n, group = 1)) +
+  geom_line() +
+  labs(title = "Woj Daily Tweet Frequency") +
+  ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+date_count[order(-date_count$n), ]
+```
+Looking back at part b, it was clear that two periods where Woj's tweets were far more frequent than others. So, I ordered the final data set from part b to find what the dates were around July of 2022 and August of 2021. After doing research online, I discovered that the major influx in tweets in both periods were caused by the free agency periods and NBA drafts. It was interesting though after looking through the JSON file that I discovered the 2022 NBA Draft was on June 23rd, but all his tweets were sent out on the 24th. The same instance happened in the 2021 NBA Draft where the draft happened on July 29th, but all of Woj's tweets about the draft were on the 30th. I don't know if this was caused by a different time zone or if it was something involving the JSON file, but something is up there.
+\newpage
