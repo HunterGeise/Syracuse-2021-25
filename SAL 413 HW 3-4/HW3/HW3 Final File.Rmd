@@ -1,0 +1,151 @@
+---
+title: "SAL 413 Homework 3"
+author: "Nolan Pittman, Hunter Geise, Aidan Myers, Ari Glazier"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview and Instructions
+
+This problem set is intended to exercise your coding skills. Your styling must conform to the tidyverse style guide. This will be a group assignment. However, you must work only with the people within your group. A group may not seek help from peers in other groups. You may use whatever notes, textbooks, etc. you find helpful for the assignment. Your code should consist of functions found in rvest, httr, stringr, purrr, or very basic R functions. Do not use other tidyverse functions that we have not gone over in class unless directed to do so in the homework. Please compile your document into a PDF and upload the PDF to Blackboard with the filename in the following format: [surname]\_hw3.pdf. For example, I would turn in maddox\_hw3.pdf. Please include the questions, your code, output, and responses for each question in the pdf. Please start each new question on a new page
+
+```{r, include = FALSE}
+library(tidyverse)
+library(rvest)
+library(stringr)
+library(httr)
+library(glue)
+theme_set(theme_bw())
+```
+\newpage
+# Questions
+
+This homework will work on web scraping in R using rvest. Each question will build on the results from the previous question. Read each question carefully as steps to solving the question may be laid out in the question itself.
+
+1. Go to ESPN’s website and find the Syracuse men’s basketball schedule for the 2022-23 season. Scrape the schedule to find the game IDs for each of the games Syracuse played that season. (The game ID is the 9 digit number at the end of the url link for each game. The first game of the season was against Lehigh, and the game ID is 401482974.) Print out a vector of the game IDs.
+
+```{r}
+SUMBB_sch <- str_c("https://www.espn.com/mens-college-basketball/team/schedule/",
+"_/id/183/season/2023") %>%
+  read_html()
+
+syr_xml <-SUMBB_sch %>%
+  html_nodes("a") %>%
+  html_attr("href")
+
+syr_xml[str_detect(syr_xml, 
+                   "https://www.espn.com/mens-college-basketball/game/_/gameId/")] %>%
+  na.omit() -> gameids
+
+gameids <- str_extract(gameids, "gameId/\\d+") %>%
+  str_replace("gameId/", "")
+
+print(gameids)
+```
+\newpage
+
+2. Write a function that reads in a game ID and will return the box score from that game. Make sure that you include both the home team and away team stats in the returned box score. Ideally what is returned is a list of 2 box scores, one from the home team and one from the road team. (It may also help to include as a third element of the list an indicator of whether Syracuse is the home team for each game at this step. Do not hardcode this in.) The general form of the box score url is: https://www.espn.com/mens-college-basketball/boxscore/_/gameId/(game ID #). You may use the dplyr function bind_cols() to combine the table of player names to the table of player stats. You may need to scrape once for the names table then a second time for the stats table. Also, use the header = TRUE argument within html_table() in order to force the top row of the table into column names.
+
+```{r}
+box_scores <- function(id) {
+  box_score <- glue(str_c("https://www.espn.com/mens-college-basketball/boxscore/",
+  "_/gameId/{id}"))
+  
+  boxscore_xml <- read_html(box_score)
+  
+  # Determining Syracuse home or not
+  SU_home <- boxscore_xml %>%
+    html_nodes("table") %>%
+    html_table %>%
+    pluck(1)
+  
+  colnames(SU_home)[colnames(SU_home) == ""] <- "Team"
+  
+  SYR_home <- tail(SU_home$Team, 1) == "SYR"
+  
+  if (SYR_home) {
+    game <- "Home"
+  } else {
+    game <- "Away"
+  }
+  
+  # Box Scores
+  boxscore_xml %>% 
+    html_nodes(".Boxscore__ResponsiveWrapper 
+               .Wrapper:nth-child(1) .Table__Scroller .Table--align-right") %>% 
+    html_table(header = TRUE) -> away_boxscore_stats
+  
+  boxscore_xml %>%
+    html_nodes(".Boxscore__ResponsiveWrapper 
+               .Wrapper:nth-child(1) .Table--fixed-left") %>% 
+    html_table(header = TRUE) -> away_boxscore_names
+  
+  away_full_boxscore <- 
+    bind_cols(away_boxscore_names, away_boxscore_stats)
+  
+  boxscore_xml %>% 
+    html_nodes(".Wrapper+ .Wrapper .Table__Scroller .Table--align-right") %>% 
+    html_table(header = TRUE) -> home_boxscore_stats 
+  
+  boxscore_xml %>% 
+    html_nodes(".Wrapper+ .Wrapper .Table--fixed-left") %>%
+    html_table(header = TRUE) -> home_boxscore_names
+  
+  home_full_boxscore <- 
+    bind_cols(home_boxscore_names, home_boxscore_stats)
+
+  return(list(away_boxscore = away_full_boxscore, 
+              home_boxscore = home_full_boxscore,
+              Syracuse = game))
+}
+```
+\newpage
+
+3. Map your function onto each of the game ID obtained in Quesiton 1. The result should be a list of box scores. Print off the first game’s box score. No need to print off the box score for every game.
+
+```{r}
+scorebox <- map(gameids, box_scores)
+scorebox[[1]]
+```
+\newpage
+
+4. Create a table including every player that played for Syracuse along with the number of points they scored for the whole season (NOT per game number). Order the players from the largest scorer to the smallest scorer. Obtain this from the data collected in Question 3. Do not simply scrape the season stats page.
+
+```{r}
+hbox <- data.frame()
+abox <- data.frame()
+
+for (i in seq_along(scorebox)) {
+  syr <- scorebox[[i]]$Syracuse
+  if (syr == "Home") {
+    hbox <- rbind(hbox, scorebox[[i]]$home_boxscore)
+  } else {
+    abox <- rbind(abox, scorebox[[i]]$away_boxscore)
+  }
+}
+
+syr_players <- rbind(hbox, abox)
+
+syr_players <- 
+  syr_players[!(syr_players$starters %in% c("bench", "",
+                                            "team")), ]
+
+players <- split(syr_players, syr_players$starters)
+
+get_PTS <- function(player) player$PTS
+
+PTS_list <- map(players, get_PTS)
+
+total_points_df <- 
+  map_dfr(names(PTS_list), function(player) {
+    tibble(Player = player, 
+           Points = sum(as.numeric(PTS_list[[player]])))
+})
+
+total_points_df[order(-total_points_df$Points), ]
+```
+\newpage

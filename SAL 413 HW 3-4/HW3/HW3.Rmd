@@ -1,0 +1,81 @@
+---
+title: "SAL 413 HW 3"
+author: "Hunter Geise"
+date: "2023-10-11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(purrr)
+library(stringr)
+library(rvest)
+library(httr)
+```
+\newpage
+
+```{r}
+page <- "https://www.espn.com/mens-college-basketball/team/schedule/_/id/183/season/2023"
+syr_xml <- read_html(page)
+nodes <- syr_xml %>% html_nodes(".ml4")
+ids <- nodes %>% str_extract_all("\\d\\d\\d\\d\\d\\d\\d\\d\\d")
+vector_ids <- unlist(ids)
+vector_ids
+```
+\newpage
+
+```{r}
+print_box_score <- function(id) {
+  box_score <- str_c("https://www.espn.com/mens-college-basketball/boxscore/_/gameId/401482974")
+  
+  boxscore_xml %>% 
+    html_nodes(".Boxscore__ResponsiveWrapper .Wrapper:nth-child(1) .Table__Scroller .Table--align-right") %>% 
+    html_table(header = TRUE) -> away_boxscore_stats 
+  
+  boxscore_xml %>% 
+    html_nodes(".Boxscore__ResponsiveWrapper .Wrapper:nth-child(1) .Table--fixed-left") %>% 
+    html_table(header = TRUE) -> away_boxscore_names
+  
+  away_full_boxscore <- bind_cols(away_boxscore_names, away_boxscore_stats)
+  
+  boxscore_xml %>% 
+    html_nodes(".Wrapper+ .Wrapper .Table__Scroller .Table--align-right") %>% 
+    html_table(header = TRUE) -> home_boxscore_stats 
+  
+  boxscore_xml <- read_html(box_score)
+  boxscore_xml %>% 
+    html_nodes(".Wrapper+ .Wrapper .Table--fixed-left") %>% html_table(header = TRUE) -> home_boxscore_names
+  
+  home_full_boxscore <- bind_cols(home_boxscore_names, home_boxscore_stats)
+  
+  print(away_full_boxscore, home_full_boxscore)}
+
+```
+\newpage
+
+```{r}
+
+```
+\newpage
+
+```{r}
+
+```
+\newpage
+
+```{r}
+
+```
+\newpage
+
+```{r}
+
+```
+\newpage
